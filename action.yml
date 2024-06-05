@@ -124,7 +124,7 @@ runs:
             ) && (
             systemctl start xl2tpd
             ) && (
-            echo "c" $VPN_NAME | sudo tee /var/run/xl2tpd/l2tp-control
+            echo "c" $VPN_NAME > /var/run/xl2tpd/l2tp-control
             sleep 40
             )
             EOF
@@ -134,7 +134,7 @@ runs:
             cat > ./stop-vpn <<EOF
             #!/bin/bash
             (
-            echo "d" $VPN_NAME | sudo tee /var/run/xl2tpd/l2tp-control
+            echo "d" $VPN_NAME > /var/run/xl2tpd/l2tp-control
             ) && (
             systemctl stop xl2tpd ;
             systemctl stop strongswan
