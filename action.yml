@@ -126,6 +126,8 @@ runs:
             ) && (
             echo "c" $VPN_NAME > /var/run/xl2tpd/l2tp-control
             sleep 40
+            sudo journalctl -eu strongswan
+            sudo journalctl -eu xl2tpd
             )
             EOF
 
@@ -142,8 +144,6 @@ runs:
             EOF
 
             chmod +x ./stop-vpn
-
-            cat $SWANCTL_CONF
       shell: bash
       env: 
         SERVER: ${{inputs.server}}
