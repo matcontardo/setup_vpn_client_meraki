@@ -23,21 +23,13 @@ runs:
   using: "composite"
   steps:
     - name: Create the scripts files for connections.
-      shell: bash
-      env: 
-        SERVER: ${{inputs.server}}
-        USERNAME: ${{inputs.username}}
-        PASSWORD: ${{inputs.password}}
-        PSK: ${{inputs.psk}}
-        NETWORK_ROUTE: ${{inputs.network_route}}
-        TEST_IP: ${{inputs.test_ip}}
       run: |
             sudo apt-get -y install xl2tpd strongswan strongswan-swanctl charon-systemd
             VPN_NAME='meraki-vpn1'
-            VPN_SERVER_IP=$SERVER
-            VPN_PSK=$PSK
-            VPN_USERNAME=$USERNAME
-            VPN_PASSWORD=$PASSWORD
+            VPN_SERVER_IP='$SERVER'
+            VPN_PSK='$PSK'
+            VPN_USERNAME='$USERNAME'
+            VPN_PASSWORD='$PASSWORD'
 
             echo "Se intentará conexión con" ${{inputs.server}}
 
@@ -156,6 +148,14 @@ runs:
             chmod +x $STOP_VPN_SCRIPT_LOCAL
 
             cat $SWANCTL_CONF
+      shell: bash
+      env: 
+        SERVER: ${{inputs.server}}
+        USERNAME: ${{inputs.username}}
+        PASSWORD: ${{inputs.password}}
+        PSK: ${{inputs.psk}}
+        NETWORK_ROUTE: ${{inputs.network_route}}
+        TEST_IP: ${{inputs.test_ip}}
 
     - name: Start VPN connection
       run: |
@@ -166,26 +166,26 @@ runs:
         NETWORK_ROUTE: ${{inputs.network_route}}
 
     - name: Test VPN
-      shell: bash
       run: |
-          TEST_SCRIPT='./test-vpn'
+        TEST_SCRIPT='./test-vpn'
 
-          cat > $TEST_SCRIPT <<EOF
-          #!/bin/bash
-          VPN_TEST_IP='$TEST_IP'
-          RECEIVED_PACKETS=\$(ping -c 5 \$VPN_TEST_IP | awk '/received/ {print \$4}')
+        cat > $TEST_SCRIPT <<EOF
+        #!/bin/bash
+        VPN_TEST_IP='$TEST_IP'
+        RECEIVED_PACKETS=\$(ping -c 5 \$VPN_TEST_IP | awk '/received/ {print \$4}')
 
-          if [ "\$RECEIVED_PACKETS" -eq 0 ]; then
-            echo "Cannot connect to VPN Server."
-            exit 1
-          else
-            echo "Connected to VPN Server."
-            exit 0
-          fi
-          EOF
+        if [ "\$RECEIVED_PACKETS" -eq 0 ]; then
+          echo "Cannot connect to VPN Server."
+          exit 1
+        else
+          echo "Connected to VPN Server."
+          exit 0
+        fi
+        EOF
 
-          chmod +x $TEST_SCRIPT
+        chmod +x $TEST_SCRIPT
 
-          sudo $TEST_SCRIPT
+        sudo $TEST_SCRIPT
+      shell: bash
       env:
         TEST_IP: ${{inputs.test_ip}}
