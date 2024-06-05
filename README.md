@@ -1,7 +1,7 @@
 # Introduction
 
-This action establishes connection for Cisco Meraki VPN routers using the L2TP/IPSec protocols with PSK. Its use
-is quite easy as you only need to provides it some variables like:
+This action establishes connection for Cisco Meraki routers and L2TP/IPSec VPN protocols with PSK. Its use
+is quite easy as you only need to provides it some variables as follows:
 
 - **server**: Server IP
 - **psk**: The preshared key
