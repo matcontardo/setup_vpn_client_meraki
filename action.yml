@@ -31,8 +31,6 @@ runs:
             VPN_USERNAME='$USERNAME'
             VPN_PASSWORD='$PASSWORD'
 
-            echo "Se intentará conexión con" ${{inputs.server}}
-
             SWANCTL_FILE='swanctl.conf'
             XL2TPD_FILE='xl2tpd.conf'
             PPP_FILE='options.l2tpd.client'
