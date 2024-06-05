@@ -153,7 +153,7 @@ runs:
 
             chmod +x $STOP_VPN_SCRIPT_LOCAL
 
-            cat $SWANCTL_CONF_LOCAL
+            cat $SWANCTL_CONF
 
     - name: Start VPN connection
       run: |
