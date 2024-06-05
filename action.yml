@@ -34,11 +34,10 @@ runs:
       run: |
             sudo apt-get -y install xl2tpd strongswan strongswan-swanctl charon-systemd
             VPN_NAME='meraki-vpn1'
-            VPN_SERVER_IP='${{ inputs.VPN_SERVER_IP }}'
-            VPN_PSK='${{ inputs.VPN_PSK }}'
-            VPN_USERNAME='${{ inputs.VPN_USERNAME }}'
-            VPN_PASSWORD='${{ inputs.VPN_PASSWORD }}'
-            VPN_ROUTE_NETWORK='${{ inputs.VPN_ROUTE_NETWORK }}'
+            VPN_SERVER_IP=$SERVER
+            VPN_PSK=$PSK
+            VPN_USERNAME=$USERNAME
+            VPN_PASSWORD=$PASSWORD
 
             SWANCTL_FILE='swanctl.conf'
             XL2TPD_FILE='xl2tpd.conf'
@@ -137,8 +136,6 @@ runs:
             ) && (
             echo "c" $VPN_NAME | sudo tee /var/run/xl2tpd/l2tp-control
             sleep 40
-            journalctl -eu strongswan
-            journalctl -eu xl2tpd
             )
             EOF
 
@@ -155,11 +152,11 @@ runs:
             EOF
 
             chmod +x $STOP_VPN_SCRIPT_LOCAL
-      - name: 'Start VPN'
+      - name: 'Start VPN connection'
         shell: bash
         run: |
           ./start-vpn
-          sudo ip route add $NETWORK_ROUTE via $TEST_IP
+          sudo ip route add $NETWORK_ROUTE dev ppp0
         env:
           NETWORK_ROUTE: ${{inputs.network_route}}
       - name: 'Test VPN'
@@ -169,14 +166,14 @@ runs:
 
             cat > $TEST_SCRIPT <<EOF
             #!/bin/bash
-            VPN_TEST_IP='${{ secrets.VPN_TEST_IP }}'
+            VPN_TEST_IP='$TEST_IP'
             RECEIVED_PACKETS=\$(ping -c 5 \$VPN_TEST_IP | awk '/received/ {print \$4}')
 
             if [ "\$RECEIVED_PACKETS" -eq 0 ]; then
-              echo "No se pudo conectar con el VPN."
+              echo "Cannot connect to VPN Server."
               exit 1
             else
-              echo "Conectado al VPN."
+              echo "Connected to VPN Server."
               exit 0
             fi
             EOF
@@ -185,4 +182,4 @@ runs:
 
             sudo $TEST_SCRIPT
           env:
-            VPN_TEST_IP: ${{inputs.test_ip}}
+            TEST_IP: ${{inputs.test_ip}}
