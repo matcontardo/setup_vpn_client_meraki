@@ -26,10 +26,10 @@ runs:
       run: |
             sudo apt-get -y install xl2tpd strongswan strongswan-swanctl charon-systemd
             VPN_NAME='meraki-vpn1'
-            VPN_SERVER_IP='$SERVER'
-            VPN_PSK='$PSK'
-            VPN_USERNAME='$USERNAME'
-            VPN_PASSWORD='$PASSWORD'
+            VPN_SERVER_IP=$SERVER
+            VPN_PSK=$PSK
+            VPN_USERNAME=$USERNAME
+            VPN_PASSWORD=$PASSWORD
 
             SWANCTL_FILE='swanctl.conf'
             XL2TPD_FILE='xl2tpd.conf'
