@@ -126,8 +126,6 @@ runs:
             ) && (
             echo "c" $VPN_NAME > /var/run/xl2tpd/l2tp-control
             sleep 40
-            sudo journalctl -eu strongswan
-            sudo journalctl -eu xl2tpd
             )
             EOF
 
