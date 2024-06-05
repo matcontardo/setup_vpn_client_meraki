@@ -42,8 +42,6 @@ runs:
             SWANCTL_CONF_LOCAL='./'$SWANCTL_FILE
             XL2TPD_CONF_LOCAL='./'$XL2TPD_FILE
             PPP_CONF_LOCAL='./'$PPP_FILE
-            START_VPN_SCRIPT_LOCAL='./start-vpn'
-            STOP_VPN_SCRIPT_LOCAL='./stop-vpn'
 
             cat > $SWANCTL_CONF_LOCAL <<EOF
             connections {
@@ -119,7 +117,7 @@ runs:
             sudo systemctl restart strongswan
             sudo systemctl restart xl2tpd
 
-            cat > $START_VPN_SCRIPT_LOCAL <<EOF
+            cat > ./start-vpn <<EOF
             #!/bin/bash
             (
             systemctl start strongswan;
@@ -131,9 +129,9 @@ runs:
             )
             EOF
 
-            chmod +x $START_VPN_SCRIPT_LOCAL
+            chmod +x ./start-vpn
 
-            cat > $STOP_VPN_SCRIPT_LOCAL <<EOF
+            cat > ./stop-vpn <<EOF
             #!/bin/bash
             (
             echo "d" $VPN_NAME | sudo tee /var/run/xl2tpd/l2tp-control
@@ -143,7 +141,7 @@ runs:
             )
             EOF
 
-            chmod +x $STOP_VPN_SCRIPT_LOCAL
+            chmod +x ./stop-vpn
 
             cat $SWANCTL_CONF
       shell: bash
@@ -157,7 +155,7 @@ runs:
 
     - name: Start VPN connection
       run: |
-        ./start-vpn
+        sudo ./start-vpn
         sudo ip route add $NETWORK_ROUTE dev ppp0
       shell: bash
       env:
