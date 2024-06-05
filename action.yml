@@ -1,5 +1,9 @@
 name: 'setup-vpn-client-meraki'
 description: 'Setup VPN client for Meraki Cisco L2TP/IPSec'
+author: Matías Contardo
+branding:
+  icon: box
+  color: green
 inputs:
   server:
     description: 'Server IP for VPN'
