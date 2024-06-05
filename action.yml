@@ -1,0 +1,187 @@
+name: 'setup-vpn-client-meraki'
+description: 'Setup VPN client for Meraki Cisco L2TP/IPSec'
+inputs:
+  server:
+    description: 'Server IP for VPN'
+    required: true
+  username: 
+    description: 'Username for VPN'
+    required: true
+  password:
+    description: 'Password for VPN'
+    required: true
+  psk: 
+    description: 'Pre-shared key for VPN'
+    required: true
+  network_route:
+    description: 'Network route for VPN'
+    required: true
+  test_ip:
+    description: 'Test IP for VPN'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Create the scripts files for connections.
+      shell: bash
+      env: 
+        SERVER: ${{inputs.server}}
+        USERNAME: ${{inputs.username}}
+        PASSWORD: ${{inputs.password}}
+        PSK: ${{inputs.psk}}
+        NETWORK_ROUTE: ${{inputs.network_route}}
+        TEST_IP: ${{inputs.test_ip}}
+      run: |
+            sudo apt-get -y install xl2tpd strongswan strongswan-swanctl charon-systemd
+            VPN_NAME='meraki-vpn1'
+            VPN_SERVER_IP=$SERVER
+            VPN_PSK=$PSK
+            VPN_USERNAME=$USERNAME
+            VPN_PASSWORD=$PASSWORD
+
+            SWANCTL_FILE='swanctl.conf'
+            XL2TPD_FILE='xl2tpd.conf'
+            PPP_FILE='options.l2tpd.client'
+
+            SWANCTL_CONF='/etc/swanctl/'$SWANCTL_FILE
+            XL2TPD_CONF='/etc/xl2tpd/'$XL2TPD_FILE
+            PPP_CONF='/etc/ppp/'$PPP_FILE
+
+            SWANCTL_CONF_LOCAL='./'$SWANCTL_FILE
+            XL2TPD_CONF_LOCAL='./'$XL2TPD_FILE
+            PPP_CONF_LOCAL='./'$PPP_FILE
+            START_VPN_SCRIPT_LOCAL='./start-vpn'
+            STOP_VPN_SCRIPT_LOCAL='./stop-vpn'
+
+            cat > $SWANCTL_CONF_LOCAL <<EOF
+            connections {
+              $VPN_NAME {
+                version = 1
+                proposals = aes128-sha1-modp1024,3des-sha1-modp1024
+                local_addrs = %any
+                remote_addrs = $VPN_SERVER_IP
+
+                local {
+                  auth = psk
+                  id = $VPN_USERNAME
+                }
+
+                remote {
+                  auth = psk
+                  id = $VPN_SERVER_IP
+                }
+
+                children {
+                  net {
+                    esp_proposals = aes128-sha1,3des-sha1
+                    mode = transport
+                    start_action = start
+                  }
+                }
+              }
+            }
+
+            secrets {
+              ike-1 {
+                secret = $VPN_PSK
+              }
+            }
+
+            EOF
+
+            sudo mv $SWANCTL_CONF_LOCAL $SWANCTL_CONF
+            chmod 644 $SWANCTL_CONF
+
+            cat > $XL2TPD_CONF_LOCAL <<EOF
+            [lac $VPN_NAME]
+            lns = $VPN_SERVER_IP
+            ppp debug = yes
+            pppoptfile = /etc/ppp/options.l2tpd.client
+            length bit = yes
+            EOF
+
+            cat > $PPP_CONF_LOCAL <<EOF
+            ipcp-accept-local
+            ipcp-accept-remote
+            refuse-eap
+            refuse-chap
+            require-pap
+            noccp
+            noauth
+            mtu 1280
+            mru 1280
+            noipdefault
+            defaultroute
+            usepeerdns
+            connect-delay 5000
+            name $VPN_USERNAME
+            password $VPN_PASSWORD
+            EOF
+
+            sudo mv $XL2TPD_CONF_LOCAL $XL2TPD_CONF
+            sudo mv $PPP_CONF_LOCAL $PPP_CONF
+
+            sudo chmod 600 $XL2TPD_CONF
+            sudo chmod 600 $PPP_CONF
+
+            sudo systemctl restart strongswan
+            sudo systemctl restart xl2tpd
+
+            cat > $START_VPN_SCRIPT_LOCAL <<EOF
+            #!/bin/bash
+            (
+            systemctl start strongswan;
+            ) && (
+            systemctl start xl2tpd
+            ) && (
+            echo "c" $VPN_NAME | sudo tee /var/run/xl2tpd/l2tp-control
+            sleep 40
+            )
+            EOF
+
+            chmod +x $START_VPN_SCRIPT_LOCAL
+
+            cat > $STOP_VPN_SCRIPT_LOCAL <<EOF
+            #!/bin/bash
+            (
+            echo "d" $VPN_NAME | sudo tee /var/run/xl2tpd/l2tp-control
+            ) && (
+            systemctl stop xl2tpd ;
+            systemctl stop strongswan
+            )
+            EOF
+
+            chmod +x $STOP_VPN_SCRIPT_LOCAL
+
+    - name: Start VPN connection
+      run: |
+        ./start-vpn
+        sudo ip route add $NETWORK_ROUTE dev ppp0
+      shell: bash
+      env:
+        NETWORK_ROUTE: ${{inputs.network_route}}
+
+    - name: Test VPN
+      shell: bash
+      run: |
+          TEST_SCRIPT='./test-vpn'
+
+          cat > $TEST_SCRIPT <<EOF
+          #!/bin/bash
+          VPN_TEST_IP='$TEST_IP'
+          RECEIVED_PACKETS=\$(ping -c 5 \$VPN_TEST_IP | awk '/received/ {print \$4}')
+
+          if [ "\$RECEIVED_PACKETS" -eq 0 ]; then
+            echo "Cannot connect to VPN Server."
+            exit 1
+          else
+            echo "Connected to VPN Server."
+            exit 0
+          fi
+          EOF
+
+          chmod +x $TEST_SCRIPT
+
+          sudo $TEST_SCRIPT
+      env:
+        TEST_IP: ${{inputs.test_ip}}
